@@ -3,209 +3,168 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rapid Calorie Tracker</title>
+    <title>Google Sheets Calorie Tracker</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2ecc71; --bg: #f4f7f6; --text: #2c3e50; --accent: #3498db; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
+        .container { max-width: 450px; margin: auto; background: white; padding: 25px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         
-        nav { display: flex; gap: 10px; margin-bottom: 20px; background: #eee; border-radius: 12px; padding: 5px; }
-        nav button { background: none; border: none; padding: 12px; font-weight: bold; cursor: pointer; color: #7f8c8d; flex: 1; transition: 0.2s; border-radius: 8px; }
-        nav button.active { background: white; color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        nav { display: flex; gap: 8px; margin-bottom: 25px; background: #eee; border-radius: 12px; padding: 4px; }
+        nav button { background: none; border: none; padding: 12px; font-weight: bold; cursor: pointer; color: #7f8c8d; flex: 1; border-radius: 8px; }
+        nav button.active { background: white; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
 
-        .stats-card { text-align: center; margin-bottom: 25px; padding: 20px; border-radius: 15px; background: #fff; border: 1px solid #eee; }
-        .progress-bar { width: 100%; height: 20px; background: #e0e0e0; border-radius: 10px; overflow: hidden; margin: 15px 0; position: relative; }
-        #progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.5s ease-out; }
+        .stats { text-align: center; margin-bottom: 20px; }
+        .bar-bg { width: 100%; height: 20px; background: #e0e0e0; border-radius: 10px; overflow: hidden; margin: 10px 0; }
+        #bar-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.5s; }
         
-        .input-area { display: flex; gap: 8px; margin-bottom: 15px; }
-        input { padding: 12px; border: 2px solid #eee; border-radius: 10px; flex: 1; font-size: 16px; outline: none; transition: 0.2s; }
-        input:focus { border-color: var(--primary); }
-        .btn-add { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; }
+        .inputs { display: flex; gap: 8px; margin-bottom: 15px; }
+        input { padding: 12px; border: 1px solid #ddd; border-radius: 10px; flex: 1; font-size: 16px; outline: none; }
+        button.add { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; }
         
-        #history-list { list-style: none; padding: 0; margin-top: 20px; max-height: 300px; overflow-y: auto; }
-        li { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #f8f9fa; animation: fadeIn 0.3s ease; }
-        .item-name { font-weight: 500; display: block; }
-        .item-ts { font-size: 0.75em; color: #95a5a6; }
-        .item-val { font-weight: bold; color: var(--primary); }
-
+        ul { list-style: none; padding: 0; margin-top: 15px; border-top: 1px solid #eee; }
+        li { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f9f9f9; font-size: 14px; }
         .hidden { display: none; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        #status { font-size: 11px; text-align: center; margin-top: 15px; color: #95a5a6; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <nav>
-        <button id="btn-day" class="active" onclick="switchTab('day')">Day</button>
-        <button id="btn-week" onclick="switchTab('week')">Week</button>
-        <button id="btn-weight" onclick="switchTab('weight')">Weight</button>
+        <button id="btn-day" class="active" onclick="setTab('day')">Daily</button>
+        <button id="btn-week" onclick="setTab('week')">Weekly</button>
+        <button id="btn-weight" onclick="setTab('weight')">Weight</button>
     </nav>
 
-    <div class="stats-card">
-        <h2 id="view-title">Today</h2>
-        <div class="progress-bar"><div id="progress-fill"></div></div>
-        <p><span id="current-cals" style="font-size: 1.8em; font-weight: bold;">0</span> / <span id="max-cals">1700</span> kcal</p>
+    <div class="stats">
+        <h2 id="title">Today</h2>
+        <div class="bar-bg"><div id="bar-fill"></div></div>
+        <p><span id="cur" style="font-size: 1.8em; font-weight: bold;">0</span> / <span id="max">1700</span> kcal</p>
     </div>
 
-    <div id="food-inputs" class="input-area">
-        <input type="text" id="food" placeholder="Food item...">
-        <input type="number" id="cals" placeholder="kcal" style="max-width: 80px;">
-        <button class="btn-add" onclick="submitData('Log')">Add</button>
+    <div id="food-in" class="inputs">
+        <input type="text" id="fname" placeholder="Food item">
+        <input type="number" id="fcal" placeholder="kcal" style="max-width:80px">
+        <button class="add" onclick="doSubmit('Log')">Add</button>
     </div>
 
-    <div id="weight-inputs" class="input-area hidden">
-        <input type="number" id="weight-val" step="0.1" placeholder="Current weight (kg/lb)">
-        <button class="btn-add" style="background: var(--accent);" onclick="submitData('Weight')">Log</button>
+    <div id="weight-in" class="inputs hidden">
+        <input type="number" id="wval" step="0.1" placeholder="Enter Weight">
+        <button class="add" style="background:var(--accent)" onclick="doSubmit('Weight')">Log</button>
     </div>
 
-    <div id="chart-container" class="hidden" style="margin-bottom: 20px;">
-        <canvas id="weightChart"></canvas>
-    </div>
-
-    <ul id="history-list"></ul>
+    <canvas id="weightChart" class="hidden" style="margin-bottom:20px;"></canvas>
+    
+    <ul id="list"></ul>
+    <div id="status">Syncing with Sheet...</div>
 </div>
 
 <script>
-    // CONFIGURATION
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0ynkJrZD9S3nRkQyLkrTpkqmrarw06we-rBHpRyuY_tbZfSL9qdc1W1Xf5MCJAU4U/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby-UhFspx9DnNOXjXlMfgwvFuhbcrwKi-GzHEYClobn0wqM_fbFbTYGuEKrU5VisXwm/exec";
     const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTFzQh5QvbqmsxVus0_dOcv4LnC8JesfugpL7BZFpLg_NO0iw_ouFbxvgkw-ALJrLkxfCJYsqxLK5Gb/pub?output=csv";
-    
-    let rawLog = JSON.parse(localStorage.getItem('tempLog')) || [];
-    let currentTab = 'day';
+
+    let sheetData = [];
+    let tab = 'day';
     let chart = null;
 
-    // 1. DATA FETCHING
-    async function init() {
-        render(); // Render local storage first for speed
+    // FETCH DATA FROM GOOGLE SHEET
+    async function fetchData() {
+        document.getElementById('status').innerText = "Updating from Google Sheets...";
         try {
-            const res = await fetch(CSV_URL);
+            const res = await fetch(CSV_URL + '?nocache=' + new Date().getTime());
             const text = await res.text();
-            const rows = text.split('\n').map(r => r.split(',')).slice(1);
-            // Merge cloud data with any local temp data, unique by timestamp
-            rawLog = rows.filter(r => r[0] !== "");
-            localStorage.setItem('tempLog', JSON.stringify(rawLog));
+            // Parse CSV rows
+            sheetData = text.split('\n')
+                            .map(row => row.split(','))
+                            .slice(1)
+                            .filter(row => row[0] !== "");
+            document.getElementById('status').innerText = "Connected to Sheet";
             render();
-        } catch (e) { console.log("Offline or Sheet busy"); }
+        } catch (e) {
+            document.getElementById('status').innerText = "Error syncing with Sheet";
+        }
     }
 
-    // 2. TAB SWITCHING
-    function switchTab(tab) {
-        currentTab = tab;
+    function setTab(t) {
+        tab = t;
         document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-        document.getElementById('btn-' + tab).classList.add('active');
-        
-        document.getElementById('food-inputs').classList.toggle('hidden', tab === 'weight');
-        document.getElementById('weight-inputs').classList.toggle('hidden', tab !== 'weight');
-        document.getElementById('chart-container').classList.toggle('hidden', tab !== 'weight');
-        
+        document.getElementById('btn-'+t).classList.add('active');
+        document.getElementById('food-in').classList.toggle('hidden', t === 'weight');
+        document.getElementById('weight-in').classList.toggle('hidden', t !== 'weight');
+        document.getElementById('weightChart').classList.toggle('hidden', t !== 'weight');
         render();
     }
 
-    // 3. RENDER LOGIC
     function render() {
         const now = new Date();
-        const limit = currentTab === 'day' ? 1700 : 11900;
+        const limit = tab === 'day' ? 1700 : 11900;
         
         // Monday Start Calculation
-        const startOfWeek = new Date(now);
-        const day = now.getDay() || 7; 
-        startOfWeek.setDate(now.getDate() - day + 1);
-        startOfWeek.setHours(0,0,0,0);
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - (now.getDay() || 7) + 1);
+        monday.setHours(0,0,0,0);
 
-        const filtered = rawLog.filter(row => {
-            if (!row[0]) return false;
-            const d = new Date(row[0]);
-            return currentTab === 'day' ? 
-                d.toLocaleDateString() === now.toLocaleDateString() : 
-                d >= startOfWeek;
+        const filtered = sheetData.filter(r => {
+            const d = new Date(r[0]);
+            return tab === 'day' ? d.toLocaleDateString() === now.toLocaleDateString() : d >= monday;
         });
 
         const total = filtered.reduce((s, r) => s + (Number(r[2]) || 0), 0);
-        
-        // Update Stats
-        document.getElementById('view-title').innerText = currentTab === 'day' ? "Today" : "This Week";
-        document.getElementById('current-cals').innerText = total;
-        document.getElementById('max-cals').innerText = limit;
-        document.getElementById('progress-fill').style.width = Math.min((total / limit) * 100, 100) + "%";
+        document.getElementById('title').innerText = tab === 'day' ? "Today" : "This Week";
+        document.getElementById('cur').innerText = Math.round(total);
+        document.getElementById('max').innerText = limit;
+        document.getElementById('bar-fill').style.width = Math.min((total/limit)*100, 100) + "%";
 
-        // Update List
-        const list = document.getElementById('history-list');
-        list.innerHTML = [...filtered].reverse().map(row => `
+        const listEl = document.getElementById('list');
+        listEl.innerHTML = [...filtered].reverse().map(r => `
             <li>
-                <div>
-                    <span class="item-name">${row[1]}</span>
-                    <span class="item-ts">${new Date(row[0]).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-                </div>
-                <span class="item-val">${row[2]}</span>
+                <span><b>${r[1]}</b><br><small>${new Date(r[0]).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</small></span>
+                <span>${r[2]} kcal</span>
             </li>
         `).join('');
 
-        if (currentTab === 'weight') updateChart();
+        if (tab === 'weight') doChart();
     }
 
-    // 4. SUBMISSION (Local-First)
-    function submitData(type) {
-        const ts = new Date().toISOString();
-        let payload = { type };
+    async function doSubmit(type) {
+        const name = type === 'Log' ? document.getElementById('fname').value : "Weight";
+        const val = type === 'Log' ? document.getElementById('fcal').value : document.getElementById('wval').value;
+        if (!val) return;
 
-        if (type === 'Log') {
-            const name = document.getElementById('food').value;
-            const val = document.getElementById('cals').value;
-            if (!name || !val) return;
-            
-            rawLog.push([ts, name, val]);
-            payload.name = name;
-            payload.value = val;
-            
-            document.getElementById('food').value = '';
-            document.getElementById('cals').value = '';
-        } else {
-            const val = document.getElementById('weight-val').value;
-            if (!val) return;
-            // For simplicity, weight can be stored in the same log or separate array
-            // Here we send it to the sheet directly
-            payload.value = val;
-            document.getElementById('weight-val').value = '';
-        }
-
-        // Save locally and update UI instantly
-        localStorage.setItem('tempLog', JSON.stringify(rawLog));
+        // Visual feedback: Add to UI immediately even if sheet isn't updated yet
+        const tempEntry = [new Date().toISOString(), name, val];
+        sheetData.push(tempEntry);
         render();
 
-        // Send to Google in background
+        // Clear inputs
+        document.getElementById('fname').value = ''; 
+        document.getElementById('fcal').value = '';
+        document.getElementById('wval').value = '';
+
+        // SEND TO GOOGLE
         fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
-            body: JSON.stringify(payload)
+            body: JSON.stringify({type, name, value: val})
         });
     }
 
-    function updateChart() {
+    function doChart() {
         const ctx = document.getElementById('weightChart').getContext('2d');
         if (chart) chart.destroy();
-        
-        // Filter rows that are weights (if you store them differently)
-        // For this demo, we'll assume a dedicated weight fetch or filter
-        const weightData = rawLog.filter(r => r[1] === "Weight").slice(-7); 
-
+        const pts = sheetData.filter(r => r[1] === "Weight").slice(-10);
         chart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: weightData.map(r => new Date(r[0]).toLocaleDateString()),
-                datasets: [{
-                    label: 'Weight Trend',
-                    data: weightData.map(r => r[2]),
-                    borderColor: '#3498db',
-                    tension: 0.3,
-                    fill: false
-                }]
-            },
-            options: { responsive: true, scales: { y: { beginAtZero: false } } }
+                labels: pts.map(p => new Date(p[0]).toLocaleDateString()),
+                datasets: [{ label: 'Weight Progress', data: pts.map(p => p[2]), borderColor: '#3498db', tension: 0.2 }]
+            }
         });
     }
 
-    init();
+    // Initial Load
+    fetchData();
 </script>
 </body>
 </html>
