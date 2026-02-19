@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Sheets Calorie Tracker</title>
+    <title>Calorie Tracker</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2ecc71; --bg: #f4f7f6; --text: #2c3e50; --accent: #3498db; }
@@ -11,12 +11,12 @@
         .container { max-width: 450px; margin: auto; background: white; padding: 25px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         
         nav { display: flex; gap: 8px; margin-bottom: 25px; background: #eee; border-radius: 12px; padding: 4px; }
-        nav button { background: none; border: none; padding: 12px; font-weight: bold; cursor: pointer; color: #7f8c8d; flex: 1; border-radius: 8px; }
+        nav button { background: none; border: none; padding: 12px; font-weight: bold; cursor: pointer; color: #7f8c8d; flex: 1; border-radius: 8px; transition: 0.2s; }
         nav button.active { background: white; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
 
         .stats { text-align: center; margin-bottom: 20px; }
         .bar-bg { width: 100%; height: 20px; background: #e0e0e0; border-radius: 10px; overflow: hidden; margin: 10px 0; }
-        #bar-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.5s; }
+        #bar-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.5s ease-in-out; }
         
         .inputs { display: flex; gap: 8px; margin-bottom: 15px; }
         input { padding: 12px; border: 1px solid #ddd; border-radius: 10px; flex: 1; font-size: 16px; outline: none; }
@@ -25,7 +25,8 @@
         ul { list-style: none; padding: 0; margin-top: 15px; border-top: 1px solid #eee; }
         li { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f9f9f9; font-size: 14px; }
         .hidden { display: none; }
-        #status { font-size: 11px; text-align: center; margin-top: 15px; color: #95a5a6; }
+        #status { font-size: 11px; text-align: center; margin-top: 15px; color: #95a5a6; padding: 5px; border-radius: 5px; }
+        .syncing { background: #fff9e6; color: #f39c12; }
     </style>
 </head>
 <body>
@@ -57,7 +58,7 @@
     <canvas id="weightChart" class="hidden" style="margin-bottom:20px;"></canvas>
     
     <ul id="list"></ul>
-    <div id="status">Syncing with Sheet...</div>
+    <div id="status">Ready</div>
 </div>
 
 <script>
@@ -68,21 +69,17 @@
     let tab = 'day';
     let chart = null;
 
-    // FETCH DATA FROM GOOGLE SHEET
     async function fetchData() {
-        document.getElementById('status').innerText = "Updating from Google Sheets...";
+        const status = document.getElementById('status');
+        status.innerText = "Syncing with Google Sheets...";
         try {
             const res = await fetch(CSV_URL + '?nocache=' + new Date().getTime());
             const text = await res.text();
-            // Parse CSV rows
-            sheetData = text.split('\n')
-                            .map(row => row.split(','))
-                            .slice(1)
-                            .filter(row => row[0] !== "");
-            document.getElementById('status').innerText = "Connected to Sheet";
+            sheetData = text.split('\n').map(row => row.split(',')).slice(1).filter(row => row[0] !== "");
+            status.innerText = "✓ Connected";
             render();
         } catch (e) {
-            document.getElementById('status').innerText = "Error syncing with Sheet";
+            status.innerText = "Connection Error";
         }
     }
 
@@ -100,7 +97,6 @@
         const now = new Date();
         const limit = tab === 'day' ? 1700 : 11900;
         
-        // Monday Start Calculation
         const monday = new Date(now);
         monday.setDate(now.getDate() - (now.getDay() || 7) + 1);
         monday.setHours(0,0,0,0);
@@ -127,27 +123,37 @@
         if (tab === 'weight') doChart();
     }
 
-    async function doSubmit(type) {
+    function doSubmit(type) {
         const name = type === 'Log' ? document.getElementById('fname').value : "Weight";
         const val = type === 'Log' ? document.getElementById('fcal').value : document.getElementById('wval').value;
         if (!val) return;
 
-        // Visual feedback: Add to UI immediately even if sheet isn't updated yet
+        // Visual update
         const tempEntry = [new Date().toISOString(), name, val];
         sheetData.push(tempEntry);
         render();
 
-        // Clear inputs
-        document.getElementById('fname').value = ''; 
-        document.getElementById('fcal').value = '';
-        document.getElementById('wval').value = '';
+        document.getElementById('status').innerText = "Sending...";
+        document.getElementById('status').classList.add('syncing');
 
-        // SEND TO GOOGLE
+        // Form Data approach for better GAS compatibility
+        const formData = new URLSearchParams();
+        formData.append('name', name);
+        formData.append('value', val);
+        formData.append('type', type);
+
         fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
-            body: JSON.stringify({type, name, value: val})
+            body: formData
+        }).then(() => {
+            document.getElementById('status').innerText = "Sent to Sheet";
+            document.getElementById('status').classList.remove('syncing');
         });
+
+        document.getElementById('fname').value = ''; 
+        document.getElementById('fcal').value = '';
+        document.getElementById('wval').value = '';
     }
 
     function doChart() {
@@ -158,12 +164,11 @@
             type: 'line',
             data: {
                 labels: pts.map(p => new Date(p[0]).toLocaleDateString()),
-                datasets: [{ label: 'Weight Progress', data: pts.map(p => p[2]), borderColor: '#3498db', tension: 0.2 }]
+                datasets: [{ label: 'Weight Trend', data: pts.map(p => p[2]), borderColor: '#3498db', tension: 0.2 }]
             }
         });
     }
 
-    // Initial Load
     fetchData();
 </script>
 </body>
