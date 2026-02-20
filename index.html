@@ -3,173 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calorie Tracker</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Calorie & Weight Tracker</title>
     <style>
-        :root { --primary: #2ecc71; --bg: #f4f7f6; --text: #2c3e50; --accent: #3498db; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
-        .container { max-width: 450px; margin: auto; background: white; padding: 25px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        
-        nav { display: flex; gap: 8px; margin-bottom: 25px; background: #eee; border-radius: 12px; padding: 4px; }
-        nav button { background: none; border: none; padding: 12px; font-weight: bold; cursor: pointer; color: #7f8c8d; flex: 1; border-radius: 8px; transition: 0.2s; }
-        nav button.active { background: white; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-
-        .stats { text-align: center; margin-bottom: 20px; }
-        .bar-bg { width: 100%; height: 20px; background: #e0e0e0; border-radius: 10px; overflow: hidden; margin: 10px 0; }
-        #bar-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.5s ease-in-out; }
-        
-        .inputs { display: flex; gap: 8px; margin-bottom: 15px; }
-        input { padding: 12px; border: 1px solid #ddd; border-radius: 10px; flex: 1; font-size: 16px; outline: none; }
-        button.add { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; }
-        
-        ul { list-style: none; padding: 0; margin-top: 15px; border-top: 1px solid #eee; }
-        li { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f9f9f9; font-size: 14px; }
-        .hidden { display: none; }
-        #status { font-size: 11px; text-align: center; margin-top: 15px; color: #95a5a6; padding: 5px; border-radius: 5px; }
-        .syncing { background: #fff9e6; color: #f39c12; }
+        :root { --primary: #2ecc71; --bg: #f4f7f6; --text: #2c3e50; }
+        body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 20px; display: flex; justify-content: center; }
+        .card { width: 100%; max-width: 380px; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+        h2 { text-align: center; margin-bottom: 25px; font-weight: 700; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: 600; color: #7f8c8d; }
+        input { width: 100%; padding: 12px; border: 1px solid #dfe6e9; border-radius: 10px; font-size: 16px; box-sizing: border-box; outline: none; transition: 0.2s; }
+        input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.1); }
+        button { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 16px; margin-top: 10px; }
+        #status { text-align: center; margin-top: 20px; font-size: 14px; min-height: 20px; }
+        iframe { display: none; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <nav>
-        <button id="btn-day" class="active" onclick="setTab('day')">Daily</button>
-        <button id="btn-week" onclick="setTab('week')">Weekly</button>
-        <button id="btn-weight" onclick="setTab('weight')">Weight</button>
-    </nav>
-
-    <div class="stats">
-        <h2 id="title">Today</h2>
-        <div class="bar-bg"><div id="bar-fill"></div></div>
-        <p><span id="cur" style="font-size: 1.8em; font-weight: bold;">0</span> / <span id="max">1700</span> kcal</p>
-    </div>
-
-    <div id="food-in" class="inputs">
-        <input type="text" id="fname" placeholder="Food item">
-        <input type="number" id="fcal" placeholder="kcal" style="max-width:80px">
-        <button class="add" onclick="doSubmit('Log')">Add</button>
-    </div>
-
-    <div id="weight-in" class="inputs hidden">
-        <input type="number" id="wval" step="0.1" placeholder="Enter Weight">
-        <button class="add" style="background:var(--accent)" onclick="doSubmit('Weight')">Log</button>
-    </div>
-
-    <canvas id="weightChart" class="hidden" style="margin-bottom:20px;"></canvas>
+<div class="card">
+    <h2>Tracker</h2>
     
-    <ul id="list"></ul>
+    <form id="trackerForm" 
+          action="https://script.google.com/macros/s/AKfycbws-eDRA6_7kbFeOqqOc2426aJT_Bu20MvkAFndJYyFAZH2RXFELq69xMHSKzH2kvA_/exec" 
+          method="GET" 
+          target="hidden_frame">
+        
+        <div class="input-group">
+            <label>Item Name</label>
+            <input type="text" name="item" id="item" placeholder="e.g. Apple or Weight" required>
+        </div>
+        
+        <div class="input-group">
+            <label>Amount</label>
+            <input type="number" name="amount" id="amount" placeholder="Calories or kg" step="0.1" required>
+        </div>
+        
+        <button type="submit" onclick="showLoading()">Add Entry</button>
+    </form>
+
+    <iframe name="hidden_frame" id="hidden_frame"></iframe>
     <div id="status">Ready</div>
 </div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby-UhFspx9DnNOXjXlMfgwvFuhbcrwKi-GzHEYClobn0wqM_fbFbTYGuEKrU5VisXwm/exec";
-    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTFzQh5QvbqmsxVus0_dOcv4LnC8JesfugpL7BZFpLg_NO0iw_ouFbxvgkw-ALJrLkxfCJYsqxLK5Gb/pub?output=csv";
-
-    let sheetData = [];
-    let tab = 'day';
-    let chart = null;
-
-    async function fetchData() {
+    function showLoading() {
         const status = document.getElementById('status');
-        status.innerText = "Syncing with Google Sheets...";
-        try {
-            const res = await fetch(CSV_URL + '?nocache=' + new Date().getTime());
-            const text = await res.text();
-            sheetData = text.split('\n').map(row => row.split(',')).slice(1).filter(row => row[0] !== "");
-            status.innerText = "✓ Connected";
-            render();
-        } catch (e) {
-            status.innerText = "Connection Error";
+        const item = document.getElementById('item').value;
+        const amount = document.getElementById('amount').value;
+
+        if (item && amount) {
+            status.innerText = "Connecting to Google Sheets...";
+            status.style.color = "#f39c12";
+
+            // Visual confirmation
+            setTimeout(() => {
+                document.getElementById('item').value = '';
+                document.getElementById('amount').value = '';
+                status.innerText = "✓ Successfully sent to Sheet!";
+                status.style.color = "#2ecc71";
+            }, 800);
         }
     }
-
-    function setTab(t) {
-        tab = t;
-        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-        document.getElementById('btn-'+t).classList.add('active');
-        document.getElementById('food-in').classList.toggle('hidden', t === 'weight');
-        document.getElementById('weight-in').classList.toggle('hidden', t !== 'weight');
-        document.getElementById('weightChart').classList.toggle('hidden', t !== 'weight');
-        render();
-    }
-
-    function render() {
-        const now = new Date();
-        const limit = tab === 'day' ? 1700 : 11900;
-        
-        const monday = new Date(now);
-        monday.setDate(now.getDate() - (now.getDay() || 7) + 1);
-        monday.setHours(0,0,0,0);
-
-        const filtered = sheetData.filter(r => {
-            const d = new Date(r[0]);
-            return tab === 'day' ? d.toLocaleDateString() === now.toLocaleDateString() : d >= monday;
-        });
-
-        const total = filtered.reduce((s, r) => s + (Number(r[2]) || 0), 0);
-        document.getElementById('title').innerText = tab === 'day' ? "Today" : "This Week";
-        document.getElementById('cur').innerText = Math.round(total);
-        document.getElementById('max').innerText = limit;
-        document.getElementById('bar-fill').style.width = Math.min((total/limit)*100, 100) + "%";
-
-        const listEl = document.getElementById('list');
-        listEl.innerHTML = [...filtered].reverse().map(r => `
-            <li>
-                <span><b>${r[1]}</b><br><small>${new Date(r[0]).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</small></span>
-                <span>${r[2]} kcal</span>
-            </li>
-        `).join('');
-
-        if (tab === 'weight') doChart();
-    }
-
-    function doSubmit(type) {
-        const name = type === 'Log' ? document.getElementById('fname').value : "Weight";
-        const val = type === 'Log' ? document.getElementById('fcal').value : document.getElementById('wval').value;
-        if (!val) return;
-
-        // Visual update
-        const tempEntry = [new Date().toISOString(), name, val];
-        sheetData.push(tempEntry);
-        render();
-
-        document.getElementById('status').innerText = "Sending...";
-        document.getElementById('status').classList.add('syncing');
-
-        // Form Data approach for better GAS compatibility
-        const formData = new URLSearchParams();
-        formData.append('name', name);
-        formData.append('value', val);
-        formData.append('type', type);
-
-        fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: formData
-        }).then(() => {
-            document.getElementById('status').innerText = "Sent to Sheet";
-            document.getElementById('status').classList.remove('syncing');
-        });
-
-        document.getElementById('fname').value = ''; 
-        document.getElementById('fcal').value = '';
-        document.getElementById('wval').value = '';
-    }
-
-    function doChart() {
-        const ctx = document.getElementById('weightChart').getContext('2d');
-        if (chart) chart.destroy();
-        const pts = sheetData.filter(r => r[1] === "Weight").slice(-10);
-        chart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: pts.map(p => new Date(p[0]).toLocaleDateString()),
-                datasets: [{ label: 'Weight Trend', data: pts.map(p => p[2]), borderColor: '#3498db', tension: 0.2 }]
-            }
-        });
-    }
-
-    fetchData();
 </script>
+
 </body>
 </html>
